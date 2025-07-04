@@ -36,6 +36,8 @@ function getTelegramUserId() {
     if (user && user.id) {
       return user.id;
     }
+
+    Telegram.WebApp.ready();
   }
   return null;
 }
@@ -61,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     currentRecordId = userRecord.id;
     // Сразу показываем первый экран загрузки
-    showScreen("upload1");
+    showScreen("upload");
 
   } catch (error) {
     showErrorScreen(error.message)
@@ -96,13 +98,16 @@ function showErrorScreen(message) {
 async function findUserByTelegramId() {
     try {
         // Формируем запрос с фильтром по email
-        const response = await fetch(`${RECORDS_ENDPOINT}/count?where=(tg-id,eq,${window.tgUserId})`, {
+        const response = await fetch(`${RECORDS_ENDPOINT}?where=(tg-id,eq,${window.tgUserId})`, {
             method: 'GET',
             headers: {
                 "xc-token": API_KEY,
                 "Content-Type": "application/json"
             }
         });
+
+        console.log("Telegram User ID:", window.tgUserId);
+        console.log("API Request URL:", `${RECORDS_ENDPOINT}?where=(tg-id,eq,${window.tgUserId})&limit=1`);
         
         if (!response.ok) {
             throw new Error(`Ошибка сервера: ${response.status}`);
@@ -123,8 +128,8 @@ async function findUserByTelegramId() {
             }
             
             return {
-                id: recordId,
-                ...record
+                id: data.list[0].id,
+                ...data.list[0]
             };
         }
         
