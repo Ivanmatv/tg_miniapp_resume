@@ -96,7 +96,7 @@ function showErrorScreen(message) {
 async function findUserByTelegramId() {
     try {
         // Формируем запрос с фильтром по email
-        const response = await fetch(`${RECORDS_ENDPOINT}?where=(tg-id,eq,${window.tgUserId})`, {
+        const response = await fetch(`${RECORDS_ENDPOINT}/count?where=(tg-id,eq,${window.tgUserId})`, {
             method: 'GET',
             headers: {
                 "xc-token": API_KEY,
