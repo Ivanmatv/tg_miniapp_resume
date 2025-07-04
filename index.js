@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!userRecord) {
         //Обработка случая, когда пользователь не найден
-        showErrorScreen("Пользователь не найден в базе данных. Обратитесь в техническую поддержку.");
+        showErrorScreen("Напишите нам в боте и мы вам поможем");
         return;
     }
 
@@ -398,11 +398,4 @@ document.getElementById("submitFile").addEventListener("click", () => {
 // Закрытие приложения
 document.getElementById("closeApp").addEventListener("click", () => {
     tg.close();
-});
-
-// Обработка нажатия Enter в поле email
-emailInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        document.getElementById("submitEmail").click();
-    }
 });
