@@ -217,7 +217,7 @@ async function updateRecord(recordId, fieldId, file) {
         
         // 2. Формируем данные для обновления записи
         const updateData = {
-                id: Number(recordId),
+                id: recordId,
                 [fieldId]: attachmentData
             };
         
@@ -390,7 +390,7 @@ async function handleFileUpload() {
         if (!currentRecordId) {
             throw new Error("Не удалось определить запись для обновления");
         }
-        
+
         // Показать прогресс загрузки
         await trackUploadProgress(file, `progress`, `status`);
         
