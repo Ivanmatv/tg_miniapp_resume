@@ -255,7 +255,7 @@ async function updateRecord(recordId, fieldId, file) {
     */
 function validateFile(file) {
     if (file.size > 15 * 1024 * 1024) {
-        return "Файл слишком большой (макс. 5MB)";
+        return "Файл слишком большой (макс. 15MB)";
     }
     
     const validTypes = [
@@ -353,7 +353,7 @@ function showError(element, message) {
     * @param {string} fieldId - ID поля в базе данных
     * @param {string} nextScreen - Следующий экран
     */
-async function handleFileUpload(fileNumber, fieldId, nextScreen) {
+async function handleFileUpload(fileNumber, fieldId) {
     const fileInput = document.getElementById(`fileInput${fileNumber}`);
     const errorElement = document.getElementById(`error${fileNumber}`);
     const file = fileInput.files[0];
@@ -385,11 +385,8 @@ async function handleFileUpload(fileNumber, fieldId, nextScreen) {
         
         uploadedFiles[fileNumber - 1] = file;
         
-        if (nextScreen) {
-            showScreen(nextScreen);
-        } else {
-            showScreen("result");
-        }
+        showScreen("result");
+
     } catch (error) {
         showError(errorElement, error.message);
     }
@@ -397,7 +394,7 @@ async function handleFileUpload(fileNumber, fieldId, nextScreen) {
 
 // Назначение обработчиков для кнопок загрузки файлов
 document.getElementById("submitFile").addEventListener("click", () => {
-    handleFileUpload(1, SOLUTION_FIELDS.solution, "upload2");
+    handleFileUpload(1, SOLUTION_FIELDS.solution);
 });
 
 // Закрытие приложения
