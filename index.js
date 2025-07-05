@@ -27,6 +27,7 @@ const screens = {
 };
 
 let currentRecordId = null;
+let uploadedFiles = [null, null, null];
 
 // Функция аутентификации по tg-id
 function getTelegramUserId() {
@@ -352,9 +353,9 @@ function showError(element, message) {
     * @param {string} fieldId - ID поля в базе данных
     * @param {string} nextScreen - Следующий экран
     */
-async function handleFileUpload() {
-    const fileInput = document.getElementById(`fileInput`);
-    const errorElement = document.getElementById(`error`);
+async function handleFileUpload(fileNumber, fieldId) {
+    const fileInput = document.getElementById(`fileInput${fileNumber}`);
+    const errorElement = document.getElementById(`error${fileNumber}`);
     const file = fileInput.files[0];
     
     errorElement.classList.add("hidden");
@@ -373,10 +374,16 @@ async function handleFileUpload() {
     
     try {
         // Показать прогресс загрузки
-        await trackUploadProgress(file);
+        await trackUploadProgress(
+            file, 
+            `progress${fileNumber}`, 
+            `status${fileNumber}`
+        );
         
         // Обновление записи в базе данных с дополнительными данными
-        await updateRecord(currentRecordId, SOLUTION_FIELDS.solution, file);
+        await updateRecord(currentRecordId, fieldId, file);
+        
+        uploadedFiles[fileNumber - 1] = file;
         
         showScreen("result");
 
@@ -384,7 +391,6 @@ async function handleFileUpload() {
         showError(errorElement, error.message);
     }
 }
-
 
 // Назначение обработчиков для кнопок загрузки файлов
 document.getElementById("submitFile").addEventListener("click", () => {
