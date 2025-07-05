@@ -384,3 +384,14 @@ async function handleFileUpload() {
         showError(errorElement, error.message);
     }
 }
+
+
+// Назначение обработчиков для кнопок загрузки файлов
+document.getElementById("submitFile").addEventListener("click", () => {
+    handleFileUpload(1, SOLUTION_FIELDS.solution);
+});
+
+// Закрытие приложения
+document.getElementById("closeApp").addEventListener("click", () => {
+    tg.close();
+});
