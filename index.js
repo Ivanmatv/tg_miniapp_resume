@@ -13,9 +13,7 @@ const RECORDS_ENDPOINT = `${BASE_URL}/api/v2/tables/${TABLE_ID}/records`;
 const FILE_UPLOAD_ENDPOINT = `${BASE_URL}/api/v2/storage/upload`;
 
 // ID поля для загрузки резюме
-const SOLUTION_FIELDS = {
-    solution: "c8pfbgzvm3ero9x"
-};
+const SOLUTION_FIELD = "c8pfbgzvm3ero9x";
 
 // Ключ 
 const API_KEY = "N0eYiucuiiwSGIvPK5uIcOasZc_nJy6mBUihgaYQ";
@@ -61,16 +59,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     currentRecordId = userRecord.id;
+
     // Сразу показываем первый экран загрузки
     showScreen("upload");
-
-    // Назначение обработчиков для кнопок загрузки файлов
-    document.getElementById("submitFile").addEventListener("click", handleFileUpload);
-
-    // Закрытие приложения
-    document.getElementById("closeApp").addEventListener("click", () => {
-        tg.close();
-    });
 
   } catch (error) {
     showErrorScreen(error.message)
@@ -150,11 +141,10 @@ async function findUserByTelegramId() {
 /**
     * Обновление записи в базе NocoDB
     * @param {string} recordId - ID записи
-    * @param {string} fieldId - ID поля для обновления
     * @param {File} file - Файл для загрузки
     * @returns {Promise<boolean>} - Успешно ли обновление
     */
-async function updateRecord(recordId, fieldId, file) {
+async function updateRecord(recordId, file) {
     try {
         // Создаем FormData для отправки файла
         const formData = new FormData();
@@ -218,7 +208,7 @@ async function updateRecord(recordId, fieldId, file) {
         // 2. Формируем данные для обновления записи
         const updateData = {
                 id: recordId,
-                [fieldId]: attachmentData
+                [SOLUTION_FIELD]: attachmentData
             };
         
         console.log("Отправка данных для обновления:", updateData);
@@ -395,7 +385,7 @@ async function handleFileUpload() {
         await trackUploadProgress(file, `progress`, `status`);
         
         // Обновление записи в базе данных с дополнительными данными
-        await updateRecord(currentRecordId, SOLUTION_FIELDS.solution, file);
+        await updateRecord(currentRecordId, file);
         
         showScreen("result");
 
@@ -403,3 +393,9 @@ async function handleFileUpload() {
         showError(errorElement, error.message);
     }
 }
+
+// Назначение обработчиков
+document.getElementById("submitFile").addEventListener("click", handleFileUpload);
+document.getElementById("closeApp").addEventListener("click", () => {
+    tg.close();
+});
