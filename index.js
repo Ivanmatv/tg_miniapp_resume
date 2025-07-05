@@ -8,12 +8,12 @@ const BASE_URL = "https://ndb.fut.ru";
 const TABLE_ID = "maiff22q0tefj6t";
 const VIEW_ID = "vwy5xmvdj8cuwwcx";
 
+// ID поля для загрузки файла
+const SOLUTION_FIELD_ID = "c8pfbgzvm3ero9x";
+
 // Эндпоинты для работы с записями
 const RECORDS_ENDPOINT = `${BASE_URL}/api/v2/tables/${TABLE_ID}/records`;
 const FILE_UPLOAD_ENDPOINT = `${BASE_URL}/api/v2/storage/upload`;
-
-// ID поля для загрузки резюме
-const SOLUTION_FIELD = "c8pfbgzvm3ero9x";
 
 // Ключ 
 const API_KEY = "N0eYiucuiiwSGIvPK5uIcOasZc_nJy6mBUihgaYQ";
@@ -33,34 +33,25 @@ function getTelegramUserId() {
     if (user && user.id) {
       return user.id;
     }
-
-    Telegram.WebApp.ready();
   }
   return null;
 }
 
-
 document.addEventListener("DOMContentLoaded", async () => {
   Telegram.WebApp.ready();
   const id = getTelegramUserId();
-  const startParam = Telegram.WebApp.initDataUnsafe?.start_param;
-  console.log("tg-id:", id);
   window.tgUserId = id;
-  window.tgUserStartParam = startParam;
 
   try {
     // Ищем пользователя по Telegram ID
     const userRecord = await findUserByTelegramId();
 
     if (!userRecord) {
-        //Обработка случая, когда пользователь не найден
         showErrorScreen("Напишите нам в боте и мы вам поможем");
         return;
     }
 
     currentRecordId = userRecord.id;
-
-    // Сразу показываем первый экран загрузки
     showScreen("upload");
 
   } catch (error) {
@@ -70,7 +61,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Функция для показа ошибок
 function showErrorScreen(message) {
-    // Создаем элементы для отображения ошибки
     const errorScreen = document.createElement("div");
     errorScreen.className = "screen";
     errorScreen.innerHTML = `
@@ -80,22 +70,14 @@ function showErrorScreen(message) {
     `;
     document.body.appendChild(errorScreen);
     
-    // Добавляем обработчик закрытия
     document.getElementById("closeApp").addEventListener("click", () => {
         tg.close();
     });
 }
 
 // Функции для работы с NocoDB API
-
-/**
-    * Поиск пользователя по email в базе NocoDB
-    * @param {string} email - Адрес электронной почты
-    * @returns {Promise<Object|null>} - Найденная запись или null
-    */
 async function findUserByTelegramId() {
     try {
-        // Формируем запрос с фильтром по email
         const response = await fetch(`${RECORDS_ENDPOINT}?where=(tg-id,eq,${window.tgUserId})`, {
             method: 'GET',
             headers: {
@@ -103,50 +85,35 @@ async function findUserByTelegramId() {
                 "Content-Type": "application/json"
             }
         });
-
-        console.log("Telegram User ID:", window.tgUserId);
-        console.log("API Request URL:", `${RECORDS_ENDPOINT}?where=(tg-id,eq,${window.tgUserId})&limit=1`);
         
         if (!response.ok) {
             throw new Error(`Ошибка сервера: ${response.status}`);
         }
         
         const data = await response.json();
-        console.log("User search response:", data); // Для отладки
         
         if (data.list && data.list.length > 0) {
             const record = data.list[0];
-            
-            // Добавляем проверку для "Id" (с большой I и маленькой d)
             const recordId = record.id || record.Id || record.ID || record.recordId;
             
             if (!recordId) {
-                console.error("ID записи не найден в объекте:", record);
                 throw new Error("ID записи не найден");
             }
             
             return {
-                id: data.list[0].id,
-                ...data.list[0]
+                id: recordId,
+                ...record
             };
         }
         
         return null;
     } catch (error) {
-        console.error("Ошибка при поиске пользователя:", error);
         throw new Error("Не удалось подключиться к серверу. Пожалуйста, попробуйте позже.");
     }
 }
 
-/**
-    * Обновление записи в базе NocoDB
-    * @param {string} recordId - ID записи
-    * @param {File} file - Файл для загрузки
-    * @returns {Promise<boolean>} - Успешно ли обновление
-    */
-async function updateRecord(recordId, file) {
+async function updateRecord(recordId, file, extraData = {}) {
     try {
-        // Создаем FormData для отправки файла
         const formData = new FormData();
         formData.append('file', file);
         formData.append('path', 'solutions');
@@ -159,32 +126,23 @@ async function updateRecord(recordId, file) {
         });
         
         if (!uploadResponse.ok) {
-            const errorText = await uploadResponse.text();
-            console.error("Ошибка загрузки файла:", uploadResponse.status, errorText);
             throw new Error(`Ошибка загрузки файла: ${uploadResponse.status}`);
         }
         
-        // Получаем данные ответа
         let uploadData = await uploadResponse.json();
-        
-        // Если ответ - объект, преобразуем в массив
         if (!Array.isArray(uploadData)) {
             uploadData = [uploadData];
         }
         
-        // Проверяем наличие signedPath
         if (!uploadData.length || !uploadData[0]?.signedPath) {
-            console.error("Не получен signedPath в ответе:", uploadData);
             throw new Error("Не удалось получить информацию о файле");
         }
         
-        // Получаем данные о загруженном файле
         const firstItem = uploadData[0];
         const fileName = firstItem.title || file.name;
         const fileType = file.type;
         const fileSize = file.size;
         
-        // Определяем иконку по типу файла
         const getFileIcon = (mimeType) => {
             if (mimeType.includes("pdf")) return "mdi-file-pdf-outline";
             if (mimeType.includes("word")) return "mdi-file-word-outline";
@@ -193,25 +151,23 @@ async function updateRecord(recordId, file) {
             return "mdi-file-outline";
         };
         
-        // Формируем данные для поля Attachment
         const attachmentData = [
             {
                 mimetype: fileType,
                 size: fileSize,
                 title: fileName,
-                // Используем путь из ответа сервера для скачивания
                 url: `${BASE_URL}/${firstItem.path}`,
                 icon: getFileIcon(fileType)
             }
         ];
         
         // 2. Формируем данные для обновления записи
-        const updateData = {
-                id: recordId,
-                [SOLUTION_FIELD]: attachmentData
-            };
-        
-        console.log("Отправка данных для обновления:", updateData);
+        const updateData = Object.assign(
+            {
+                Id: Number(recordId),
+                [SOLUTION_FIELD_ID]: attachmentData
+            }
+        );
         
         // 3. Отправляем запрос на обновление записи
         const updateResponse = await fetch(RECORDS_ENDPOINT, {
@@ -225,45 +181,27 @@ async function updateRecord(recordId, file) {
         });
         
         if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            console.error("Ошибка обновления записи:", updateResponse.status, errorText);
             throw new Error(`Ошибка обновления записи: ${updateResponse.status}`);
         }
-        
-        const updateResult = await updateResponse.json();
-        console.log("Результат обновления записи:", updateResult);
         
         return true;
         
     } catch (error) {
-        console.error("Ошибка при обновлении записи:", error);
         throw new Error("Не удалось сохранить файл. Пожалуйста, попробуйте позже.");
     }
 }
 
-// Функции для работы с файлами
-
-/**
-    * Валидация файла перед загрузкой
-    * @param {File} file - Файл для проверки
-    * @returns {string|null} - Сообщение об ошибке или null, если файл валиден
-    */
 function validateFile(file) {
     if (file.size > 15 * 1024 * 1024) {
         return "Файл слишком большой (макс. 15MB)";
     }
     
     const validTypes = [
-        // Документы
         "application/pdf", 
         "application/msword", 
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
-        // Таблицы
-        "application/vnd.ms-excel", // XLS
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // XLSX
-        "application/vnd.ms-excel.sheet.macroEnabled.12", // XLSM
-        "application/vnd.ms-excel.addin.macroEnabled.12",  // XLAM
-        // Изображения
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "image/png",
         "image/jpeg",
         "image/jpg",
@@ -278,29 +216,14 @@ function validateFile(file) {
     return null;
 }
 
-/**
-    * Отслеживание прогресса загрузки файла
-    * @param {File} file - Файл для загрузки
-    * @param {string} progressId - ID элемента прогресса
-    * @param {string} statusId - ID элемента статуса
-    * @returns {Promise<void>}
-    */
 function trackUploadProgress(file, progressId, statusId) {
     return new Promise((resolve) => {
         const progress = document.getElementById(progressId);
         const status = document.getElementById(statusId);
-
-        // Проверка существования элементов перед работой с ними
-        if (!progress || !status) {
-            console.error("Элементы прогресса не найдены");
-            resolve();
-            return;
-        }
         
         status.textContent = "Подготовка к загрузке...";
         progress.style.width = "0%";
         
-        // Имитация прогресса для демонстрации
         let progressValue = 0;
         const interval = setInterval(() => {
             progressValue += Math.random() * 15;
@@ -317,47 +240,25 @@ function trackUploadProgress(file, progressId, statusId) {
     });
 }
 
-// Функции управления интерфейсом
-
-/**
-    * Переключение между экранами приложения
-    * @param {string} toScreen - ID экрана для отображения
-    */
 function showScreen(toScreen) {
-    // Скрываем все экраны
     document.querySelectorAll('.screen').forEach(screen => {
         screen.classList.add("hidden");
     });
     
-    // Показываем только целевой экран
     if (screens[toScreen]) {
         screens[toScreen].classList.remove("hidden");
     }
 }
 
-/**
-    * Отображение сообщения об ошибке
-    * @param {HTMLElement} element - Элемент для отображения ошибки
-    * @param {string} message - Текст ошибки
-    */
 function showError(element, message) {
     element.textContent = message;
     element.classList.remove("hidden");
 }
 
-// Обработчики событий
-
-// Обработка загрузки файлов
-
-/**
-    * Обработчик загрузки файла
-    * @param {number} fileNumber - Номер файла (1, 2 или 3)
-    * @param {string} fieldId - ID поля в базе данных
-    * @param {string} nextScreen - Следующий экран
-    */
+// Обработка загрузки файла
 async function handleFileUpload() {
-    const fileInput = document.getElementById(`fileInput`);
-    const errorElement = document.getElementById(`error`);
+    const fileInput = document.getElementById("fileInput");
+    const errorElement = document.getElementById("error");
     const file = fileInput.files[0];
     
     errorElement.classList.add("hidden");
@@ -367,7 +268,6 @@ async function handleFileUpload() {
         return;
     }
     
-    // Валидация файла
     const validationError = validateFile(file);
     if (validationError) {
         showError(errorElement, validationError);
@@ -375,16 +275,8 @@ async function handleFileUpload() {
     }
     
     try {
-
-        // Проверяем наличие recordId
-        if (!currentRecordId) {
-            throw new Error("Не удалось определить запись для обновления");
-        }
-
-        // Показать прогресс загрузки
-        await trackUploadProgress(file, `progress`, `status`);
+        await trackUploadProgress(file, "progress", "status");
         
-        // Обновление записи в базе данных с дополнительными данными
         await updateRecord(currentRecordId, file);
         
         showScreen("result");
