@@ -129,19 +129,30 @@ async function updateRecord(recordId, file, extraData = {}) {
             throw new Error(`Ошибка загрузки файла: ${uploadResponse.status}`);
         }
         
-        let uploadData = await uploadResponse.json();
-        if (!Array.isArray(uploadData)) {
-            uploadData = [uploadData];
+        // Получаем данные ответа
+        let responseData = await uploadResponse.json();
+        console.log("Ответ от сервера загрузки файла:", responseData);
+
+        // Обрабатываем возможные форматы ответа
+        let fileInfo;
+        if (Array.isArray(responseData) && responseData.length > 0) {
+            fileInfo = responseData[0];
+        } else if (typeof responseData === 'object' && responseData !== null) {
+            fileInfo = responseData;
+        } else {
+            throw new Error("Некорректный формат ответа сервера");
         }
-        
-        if (!uploadData.length || !uploadData[0]?.signedPath) {
+
+        // Проверяем наличие url
+        if (!fileInfo?.url) {
+            console.error("Не получен url в ответе:", fileInfo);
             throw new Error("Не удалось получить информацию о файле");
         }
         
-        const firstItem = uploadData[0];
-        const fileName = firstItem.title || file.name;
-        const fileType = file.type;
-        const fileSize = file.size;
+        // Получаем данные о загруженном файле из ответа сервера
+        const fileName = fileInfo.title;
+        const fileType = fileInfo.mimetype;
+        const fileSize = fileInfo.size;
         
         const getFileIcon = (mimeType) => {
             if (mimeType.includes("pdf")) return "mdi-file-pdf-outline";
@@ -156,7 +167,7 @@ async function updateRecord(recordId, file, extraData = {}) {
                 mimetype: fileType,
                 size: fileSize,
                 title: fileName,
-                url: `${BASE_URL}/${firstItem.path}`,
+                url: fileInfo.url,
                 icon: getFileIcon(fileType)
             }
         ];
