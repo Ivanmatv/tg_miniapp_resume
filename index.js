@@ -5,11 +5,10 @@ tg.MainButton.hide();
 
 // Конфигурация NocoDB API
 const BASE_URL = "https://ndb.fut.ru";
-const TABLE_ID = "maiff22q0tefj6t";
-const VIEW_ID = "vwy5xmvdj8cuwwcx";
+const TABLE_ID = "moqj9txmglwy87u";
 
 // ID поля для загрузки файла
-const SOLUTION_FIELD_ID = "c8pfbgzvm3ero9x";
+const RESUME_FIELD_ID = "cjbp6uf6tb0k528";
 
 // Эндпоинты для работы с записями
 const RECORDS_ENDPOINT = `${BASE_URL}/api/v2/tables/${TABLE_ID}/records`;
@@ -176,7 +175,7 @@ async function updateRecord(recordId, file, extraData = {}) {
         const updateData = Object.assign(
             {
                 Id: Number(recordId),
-                [SOLUTION_FIELD_ID]: attachmentData
+                [RESUME_FIELD_ID]: attachmentData
             }
         );
         
